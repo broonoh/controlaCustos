@@ -7,6 +7,7 @@
         <nav class="nav-links">
           <template v-if="store.token">
             <router-link to="/" class="nav-link">Início</router-link>
+            <router-link to="/cartao" class="nav-link">Terceiros</router-link>
             <router-link to="/categories" class="nav-link">Categorias</router-link>
             <button @click="handleLogout" class="btn-logout">Sair</button>
           </template>
@@ -19,7 +20,7 @@
       </div>
     </header>
 
-    <main class="content">
+    <main class="content-wrapper">
       <router-view />
     </main>
   </div>
@@ -41,12 +42,10 @@ const handleLogout = () => {
 </script>
 
 <style>
-/* ATENÇÃO: Removi o "scoped" para que as regras de base
-   valham para TODO o sistema (Tabelas, Gráficos, etc).
-*/
-
+/* Estilos Globais (Sem scoped para afetar todo o app) */
 :root {
   --primary-dark: #1e293b;
+  --bg-light: #f1f5f9;
   --text-main: #334155;
 }
 
@@ -58,27 +57,29 @@ const handleLogout = () => {
 
 body {
   font-family: "Inter", sans-serif;
-  background-color: #f8fafc;
+  background-color: var(--bg-light);
   color: var(--text-main);
   line-height: 1.5;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: hidden; /* Crucial para evitar quebra lateral no celular */
 }
 
-/* Estrutura Principal */
 .main-layout {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-/* Navbar Responsiva */
+/* Navbar Adaptável */
 .navbar {
   background: var(--primary-dark);
   color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0.8rem 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .nav-container {
@@ -87,8 +88,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  flex-wrap: wrap; /* Permite quebra de linha no mobile */
+  padding: 0 15px;
 }
 
 .nav-links {
@@ -96,22 +96,21 @@ body {
   align-items: center;
 }
 
-/* Estilo dos Links */
 .logo {
   text-decoration: none;
   color: white;
   font-weight: 800;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   white-space: nowrap;
 }
 
 .nav-link {
   color: #cbd5e1;
   text-decoration: none;
-  margin-left: 20px;
+  margin-left: 15px;
   font-weight: 600;
-  transition: color 0.2s;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  transition: 0.2s;
 }
 
 .nav-link:hover,
@@ -119,59 +118,66 @@ body {
   color: white;
 }
 
+/* Área de Conteúdo principal */
+.content-wrapper {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 15px; /* Espaçamento interno para não colar nas bordas */
+}
+
 .btn-logout {
   background: #ef4444;
   border: none;
   color: white;
   cursor: pointer;
-  margin-left: 20px;
-  padding: 6px 14px;
+  margin-left: 15px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-weight: 600;
-  transition: background 0.2s;
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
-/* --- RESPONSIVIDADE GLOBAL --- */
+/* --- MEDIA QUERIES --- */
 
-/* Celulares e Tablets pequenos */
-@media (max-width: 768px) {
+/* Ajustes para Celulares (Mobile) */
+@media (max-width: 640px) {
   .nav-container {
-    flex-direction: column; /* Logo em cima, links embaixo */
-    gap: 15px;
-    text-align: center;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px;
   }
 
   .nav-links {
     width: 100%;
     justify-content: center;
-    flex-wrap: wrap; /* Links quebram linha se não couberem */
-    gap: 10px;
+    flex-wrap: wrap; /* Faz os links quebrarem linha se necessário */
+    gap: 8px;
   }
 
   .nav-link {
-    margin: 0 10px;
-    font-size: 0.9rem;
+    margin: 0 5px;
+    font-size: 0.85rem;
   }
 
   .btn-logout {
-    margin-left: 10px;
-    padding: 8px 16px; /* Botão maior para facilitar o toque */
+    margin-left: 5px;
+  }
+
+  /* Ajuste para Cards e Gráficos no mobile */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important; /* Força uma única coluna */
   }
 }
 
-/* Regra de Ouro para Tabelas em Todo o Sistema */
-.table-container,
-.responsive-table {
+/* Utilitários globais para Tabelas (Use nos seus componentes) */
+.table-responsive {
   width: 100%;
-  overflow-x: auto; /* Scroll lateral apenas na tabela */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin-bottom: 1rem;
-}
-
-/* Faz com que inputs não estourem o layout no mobile */
-input,
-select,
-textarea {
-  max-width: 100%;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
 }
 </style>

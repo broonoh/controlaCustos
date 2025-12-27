@@ -124,3 +124,57 @@ def get_summary(db: Session = Depends(get_db), current_user: models.User = Depen
         "income": round(income, 2),
         "expense": round(expense, 2)
     }
+
+# --- ROTAS DE PESSOAS (ABAS) ---
+
+@app.get("/people/", response_model=List[schemas.Person])
+def read_people(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.get_people(db, user_id=current_user.id)
+
+@app.post("/people/", response_model=schemas.Person)
+def create_person(person: schemas.PersonCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.create_person(db, person, user_id=current_user.id)
+
+@app.delete("/people/{person_id}")
+def delete_person(person_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if not crud.delete_person(db, person_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    return {"message": "Pessoa e histórico removidos"}
+
+# --- ROTAS DE COMPRAS ---
+
+@app.post("/people/{person_id}/purchases/", response_model=schemas.CardPurchase)
+def add_purchase_to_person(person_id: int, purchase: schemas.CardPurchaseCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Verifica se a pessoa pertence ao usuário logado
+    person = db.query(models.Person).filter(models.Person.id == person_id, models.Person.user_id == current_user.id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    return crud.create_card_purchase(db, purchase, person_id=person_id)
+
+@app.delete("/purchases/{purchase_id}")
+def delete_card_purchase(purchase_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if not crud.delete_card_purchase(db, purchase_id):
+        raise HTTPException(status_code=404, detail="Compra não encontrada")
+    return {"message": "Lançamento removido"}
+
+@app.put("/people/{person_id}", response_model=schemas.Person)
+def update_person(person_id: int, person: schemas.PersonCreate, db: Session = Depends(get_db)):
+    db_person = db.query(models.Person).filter(models.Person.id == person_id).first()
+    if not db_person:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    db_person.name = person.name
+    db.commit()
+    db.refresh(db_person)
+    return db_person
+
+
+# No main.py, adicione esta rota:
+@app.get("/people/{person_id}/purchases/", response_model=List[schemas.CardPurchase])
+def read_person_purchases(person_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    # Verifica se a pessoa pertence ao usuário logado para segurança
+    person = db.query(models.Person).filter(models.Person.id == person_id, models.Person.user_id == current_user.id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Pessoa não encontrada")
+    
+    # Retorna as compras vinculadas a essa pessoa
+    return db.query(models.CardPurchase).filter(models.CardPurchase.person_id == person_id).all()

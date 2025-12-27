@@ -79,3 +79,42 @@ def delete_category(db: Session, category_id: int, user_id: int):
         db.commit()
         return True
     return False
+
+# --- PESSOAS ---
+def get_people(db: Session, user_id: int):
+    return db.query(models.Person).filter(models.Person.user_id == user_id).all()
+
+def create_person(db: Session, person: schemas.PersonCreate, user_id: int):
+    db_person = models.Person(**person.dict(), user_id=user_id)
+    db.add(db_person)
+    db.commit()
+    db.refresh(db_person)
+    return db_person
+
+def delete_person(db: Session, person_id: int, user_id: int):
+    db_person = db.query(models.Person).filter(models.Person.id == person_id, models.Person.user_id == user_id).first()
+    if db_person:
+        db.delete(db_person)
+        db.commit()
+        return True
+    return False
+
+# --- COMPRAS NO CARTÃO ---
+def create_card_purchase(db: Session, purchase: schemas.CardPurchaseCreate, person_id: int):
+    db_purchase = models.CardPurchase(**purchase.dict(), person_id=person_id)
+    db.add(db_purchase)
+    db.commit()
+    db.refresh(db_purchase)
+    return db_purchase
+
+def delete_card_purchase(db: Session, purchase_id: int):
+    db_purchase = db.query(models.CardPurchase).filter(models.CardPurchase.id == purchase_id).first()
+    if db_purchase:
+        db.delete(db_purchase)
+        db.commit()
+        return True
+    return False
+
+# Adicione ao seu crud.py
+def get_person_purchases(db: Session, person_id: int):
+    return db.query(models.CardPurchase).filter(models.CardPurchase.person_id == person_id).all()

@@ -1,15 +1,22 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
-import { useFinanceStore } from "../stores/finance";
 import RegisterView from "../views/RegisterView.vue";
-import CategoriesView from "../views/CategoriesView.vue"; // Importe o arquivo aqui
+// Nota: Removi os imports estáticos de Dashboard e CategoriesView se você for usá-los como dynamic imports abaixo para economizar memória
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: "/login", name: "login", component: LoginView },
-    { path: "/register", name: "register", component: RegisterView }, // 2. Verifique esta linha
+    {
+      path: "/login",
+      name: "login",
+      component: LoginView,
+    },
+    {
+      path: "/register",
+      name: "register",
+      component: RegisterView,
+    },
     {
       path: "/",
       name: "home",
@@ -22,11 +29,17 @@ const router = createRouter({
       component: () => import("../views/CategoriesView.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/cartao",
+      name: "CardManagement",
+      component: () => import("../views/CardManagement.vue"),
+      // ADICIONADO: Proteção para garantir que precisa estar logado
+      meta: { requiresAuth: true },
+    },
   ],
 });
 
 // Proteção de Rotas
-// router/index.js
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("token");
   if (to.meta.requiresAuth && !token) {

@@ -80,6 +80,7 @@ const handleSubmit = async () => {
     }
     catForm.value = { name: "", color: "#3498db" };
   } catch (error) {
+    console.error("Erro ao processar categoria:", error);
     alert("Erro ao processar categoria. Verifique se o backend está rodando.");
   } finally {
     loading.value = false;

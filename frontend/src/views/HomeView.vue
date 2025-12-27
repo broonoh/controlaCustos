@@ -1,5 +1,16 @@
 <template>
   <div class="app-container">
+    <nav class="top-nav">
+      <div class="nav-links">
+        <router-link to="/" class="nav-item" active-class="nav-active">Início</router-link>
+        <router-link to="/cartao" class="nav-item" active-class="nav-active">Terceiros</router-link>
+        <router-link to="/categories" class="nav-item" active-class="nav-active"
+          >Categorias</router-link
+        >
+      </div>
+      <!-- <button @click="handleLogout" class="btn-logout-mini">Sair 👋</button> -->
+    </nav>
+
     <header class="main-header">
       <div class="title-group">
         <h1>💰 ProjetoCustos</h1>
@@ -14,7 +25,7 @@
             <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
           </select>
         </div>
-        <div class="header-actions">
+        <div class="header-actions-btn">
           <button
             @click="exportToPDF"
             class="btn-pdf"
@@ -25,7 +36,6 @@
             <span v-else>Gerando Arquivo... ⏳</span>
           </button>
         </div>
-        <!-- <button @click="handleLogout" class="btn-logout">Sair 👋</button> -->
       </div>
     </header>
 
@@ -86,19 +96,6 @@
       </section>
 
       <aside class="sidebar-content">
-        <div class="card chart-card">
-          <h3>Distribuição</h3>
-          <CategoryChart :transactions="filtered" :categories="store.categories" />
-        </div>
-
-        <!-- <div class="card categories-nav-card">
-          <div class="card-header-flex">
-            <h3>Categorias</h3>
-            <router-link to="/categories" class="btn-manage">Gerenciar ⚙️</router-link>
-          </div>
-          <p class="info-text">Configure nomes, cores e remova categorias personalizadas.</p>
-        </div> -->
-
         <div class="card form-card">
           <h3>Novo Registro</h3>
           <form @submit.prevent="handleCreate" class="form-compact">
@@ -124,6 +121,10 @@
             </div>
             <button type="submit" class="btn-primary" :disabled="loading">Adicionar</button>
           </form>
+        </div>
+        <div class="card chart-card">
+          <h3>Distribuição</h3>
+          <CategoryChart :transactions="filtered" :categories="store.categories" />
         </div>
         <div class="card chart-card">
           <h3>Comparativo Mensal</h3>
@@ -153,22 +154,34 @@ import { useRouter } from "vue-router";
 import CategoryChart from "../components/CategoryChart.vue";
 import EditModal from "../components/EditModal.vue";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // Importa como uma função separada
-// No seu <script setup>
+import autoTable from "jspdf-autotable";
+
 const isGenerating = ref(false);
+const store = useFinanceStore();
+const router = useRouter();
+
+const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const currentYear = new Date().getFullYear();
+const availableYears = computed(() => [currentYear, currentYear + 1]);
+
+const fMonth = ref(new Date().getMonth() + 1);
+const fYear = ref(currentYear);
+
+const showModal = ref(false);
+const loading = ref(false);
+const toEdit = ref(null);
+const form = ref({ description: "", amount: null, type: "expense", category_id: "" });
 
 const exportToPDF = async () => {
   if (isGenerating.value) return;
-
   isGenerating.value = true;
   try {
     if (!filtered.value || filtered.value.length === 0) {
       alert("Não há transações filtradas para exportar neste período.");
       return;
     }
-
     const doc = new jsPDF();
-    const months = [
+    const fullMonths = [
       "Janeiro",
       "Fevereiro",
       "Março",
@@ -182,14 +195,11 @@ const exportToPDF = async () => {
       "Novembro",
       "Dezembro",
     ];
-    const monthName = months[fMonth.value - 1];
+    const monthName = fullMonths[fMonth.value - 1];
 
-    // Cabeçalho do PDF
     doc.setFontSize(18);
-    doc.setTextColor(30, 41, 59); // Cor Slate-800
+    doc.setTextColor(30, 41, 59);
     doc.text(`Relatório Financeiro: ${monthName} / ${fYear.value}`, 14, 20);
-
-    // Linha de Resumo
     doc.setFontSize(11);
     doc.setTextColor(100);
     doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 28);
@@ -212,13 +222,8 @@ const exportToPDF = async () => {
       body: tableRows,
       headStyles: { fillColor: [30, 41, 59], fontStyle: "bold" },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      margin: { top: 40 },
     });
-
     doc.save(`Relatorio_${monthName}_${fYear.value}.pdf`);
-
-    // Feedback de sucesso (opcional)
-    console.log("PDF gerado com sucesso!");
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
     alert("Falha ao gerar relatório.");
@@ -226,20 +231,6 @@ const exportToPDF = async () => {
     isGenerating.value = false;
   }
 };
-const store = useFinanceStore();
-const router = useRouter();
-
-const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const currentYear = new Date().getFullYear();
-const availableYears = computed(() => [currentYear, currentYear + 1]);
-
-const fMonth = ref(new Date().getMonth() + 1);
-const fYear = ref(currentYear);
-
-const showModal = ref(false);
-const loading = ref(false);
-const toEdit = ref(null);
-const form = ref({ description: "", amount: null, type: "expense", category_id: "" });
 
 onMounted(async () => {
   if (store.token) await store.fetchInitialData();
@@ -257,12 +248,12 @@ const getCat = (id) => {
   return store.categories.find((c) => c.id === id) || { name: "Sem Cat.", color: "#94a3b8" };
 };
 
-const handleLogout = () => {
-  if (confirm("Deseja sair?")) {
-    store.logout();
-    router.push("/login");
-  }
-};
+// const handleLogout = () => {
+//   if (confirm("Deseja sair?")) {
+//     store.logout();
+//     router.push("/login");
+//   }
+// };
 
 const handleCreate = async () => {
   loading.value = true;
@@ -290,6 +281,48 @@ const handleDelete = async (id) => {
 </script>
 
 <style scoped>
+/* NOVOS ESTILOS PARA O MENU */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 10px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.nav-links {
+  display: flex;
+  gap: 15px;
+}
+.nav-item {
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+.nav-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.nav-active {
+  background: #e2e8f0;
+  color: #3b82f6 !important;
+}
+.btn-logout-mini {
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* RESTANTE DOS ESTILOS ORIGINAIS AJUSTADOS */
 .app-container {
   max-width: 1300px;
   margin: 0 auto;
@@ -304,35 +337,20 @@ const handleDelete = async (id) => {
   margin-bottom: 25px;
 }
 .header-actions {
-  padding: 8px 15px;
-  background: #97a2adff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
-}
-.header-actions:hover {
-  background: #1a76d1ff;
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 .filters {
   display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 10px;
 }
-.filters select {
-  padding: 8px 15px;
-  background: #34495e;
-  color: white;
-  border: none;
+.mini-select {
+  padding: 8px;
   border-radius: 8px;
-  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
   font-weight: 600;
-  transition: background 0.3s;
-}
-.filters select:hover {
-  background: #2c3e50;
 }
 .summary-grid {
   display: grid;
@@ -363,33 +381,6 @@ const handleDelete = async (id) => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   margin-bottom: 20px;
 }
-
-/* Estilo do Botão de Gerenciar Categorias */
-.card-header-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.btn-manage {
-  font-size: 0.85rem;
-  padding: 6px 12px;
-  background: #f1f5f9;
-  color: #475569;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 600;
-  border: 1px solid #e2e8f0;
-}
-.btn-manage:hover {
-  background: #e2e8f0;
-}
-.info-text {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  line-height: 1.4;
-}
-
 .table-container {
   overflow-x: auto;
 }
@@ -402,7 +393,6 @@ th {
   padding: 12px;
   border-bottom: 2px solid #f1f5f9;
   color: #64748b;
-  font-size: 0.85rem;
 }
 td {
   padding: 15px 12px;
@@ -416,7 +406,6 @@ td {
   font-weight: 600;
   margin-left: 8px;
 }
-
 .form-compact input,
 .form-compact select {
   width: 100%;
@@ -440,20 +429,14 @@ td {
   font-weight: 700;
   cursor: pointer;
 }
-.btn-logout {
-  padding: 8px 16px;
-  background: #fee2e2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-icon {
-  background: none;
+.btn-pdf {
+  padding: 8px 15px;
+  background: #34495e;
+  color: white;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-weight: 600;
 }
 .b-blue {
   border-top: 5px solid #3b82f6;
@@ -470,29 +453,15 @@ td {
 .text-neg {
   color: #ef4444;
 }
-.btn-pdf {
-  padding: 8px 15px;
-  background: #34495e;
-  color: white;
+.btn-icon {
+  background: none;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
+  font-size: 1.1rem;
 }
-.btn-pdf:hover {
-  background: #2c3e50;
-}
-.btn-pdf:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
 .btn-loading {
   animation: pulse 1.5s infinite;
 }
-
 @keyframes pulse {
   0% {
     transform: scale(1);
